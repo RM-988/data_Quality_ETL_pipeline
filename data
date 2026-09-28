@@ -1,0 +1,6 @@
+record_id,client,email,amount,status
+1,Northstar Foods,contact@northstar.example,1200,Open
+2,BlueRiver Logistics,info@blueriver.example,850,Closed
+3,Greenfield Health,,500,Open
+4,Northstar Foods,contact@northstar.example,1200,Open
+5,Silverline Retail,support@silverline.example,-25,Pending
