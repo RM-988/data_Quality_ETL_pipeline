@@ -1,0 +1,48 @@
+"""Beginner CSV ETL demo with basic data quality checks."""
+import argparse, csv
+from pathlib import Path
+
+FIELDS = ["record_id", "client", "email", "amount", "status"]
+
+def run(input_path, output_path, report_path):
+    with open(input_path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    seen = set()
+    clean, issues = [], []
+    for line, row in enumerate(rows, start=2):
+        errors = []
+        rid = row.get("record_id", "").strip()
+        if not rid: errors.append("missing record_id")
+        elif rid in seen: errors.append("duplicate record_id")
+        if rid: seen.add(rid)
+        if not row.get("client", "").strip(): errors.append("missing client")
+        if not row.get("email", "").strip(): errors.append("missing email")
+        try:
+            amount = float(row.get("amount", ""))
+            if amount < 0: errors.append("amount cannot be negative")
+        except ValueError:
+            errors.append("amount must be numeric")
+        if row.get("status", "").strip().lower() not in {"open", "closed"}:
+            errors.append("status must be Open or Closed")
+        if errors:
+            issues.append({"row": line, "record_id": rid, "issues": "; ".join(errors)})
+        else:
+            row["record_id"] = rid
+            row["client"] = row["client"].strip()
+            row["email"] = row["email"].strip().lower()
+            row["amount"] = str(amount)
+            row["status"] = row["status"].strip().title()
+            clean.append(row)
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=FIELDS); writer.writeheader(); writer.writerows(clean)
+    with open(report_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["row","record_id","issues"]); writer.writeheader(); writer.writerows(issues)
+    print(f"Input rows: {len(rows)} | Valid rows: {len(clean)} | Rows with issues: {len(issues)}")
+    print(f"Clean data: {output_path} | Issue report: {report_path}")
+
+if __name__ == "__main__":
+    ap=argparse.ArgumentParser()
+    ap.add_argument("--input", default="data/input.csv")
+    ap.add_argument("--output", default="data/cleaned.csv")
+    ap.add_argument("--report", default="data/validation_issues.csv")
+    a=ap.parse_args(); run(a.input,a.output,a.report)
